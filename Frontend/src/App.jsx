@@ -7,13 +7,15 @@ function App() {
   const [todo, setTodo] = useState([]);
   const [editId, setEditId] = useState(null);
   const [description, setDescription] = useState("");
-  
+
+  // Common backend URL
+  const API_URL = import.meta.env.VITE_API_URL;
 
   // GET - Fetch all Todos
   useEffect(() => {
     async function getTodos() {
       try {
-        const response = await fetch("http://localhost:3031/todos");
+        const response = await fetch(`${API_URL}/todos`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -36,7 +38,7 @@ function App() {
     if (!val.trim() || !description.trim()) return;
 
     try {
-      const response = await fetch("http://localhost:3031/todos", {
+      const response = await fetch(`${API_URL}/todos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +56,8 @@ function App() {
         return;
       }
 
-      const result = await fetch("http://localhost:3031/todos");
+      // Refresh Todos
+      const result = await fetch(`${API_URL}/todos`);
       const todoData = await result.json();
 
       if (!result.ok) {
@@ -72,12 +75,9 @@ function App() {
   // DELETE - Delete Todo from MongoDB
   async function handledelete(id) {
     try {
-      const response = await fetch(
-        `http://localhost:3031/todos/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`${API_URL}/todos/${id}`, {
+        method: "DELETE",
+      });
 
       const data = await response.json();
 
@@ -94,17 +94,14 @@ function App() {
     }
   }
 
-  // UPDATE - Currently local React state only
-  
-async function handleUpdate(e) {
-  e.preventDefault();
+  // UPDATE - Update Todo in MongoDB
+  async function handleUpdate(e) {
+    e.preventDefault();
 
-  if (!val.trim() || !description.trim()) return;
+    if (!val.trim() || !description.trim()) return;
 
-  try {
-    const response = await fetch(
-      `http://localhost:3031/todos/${editId}`,
-      {
+    try {
+      const response = await fetch(`${API_URL}/todos/${editId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -113,45 +110,39 @@ async function handleUpdate(e) {
           title: val,
           description: description,
         }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.log(data.message);
+        return;
       }
-    );
 
-    const data = await response.json();
+      setTodo((prev) =>
+        prev.map((item) =>
+          item._id === editId ? data.data : item
+        )
+      );
 
-    if (!response.ok) {
-      console.log(data.message);
-      return;
+      setVal("");
+      setDescription("");
+      setEditId(null);
+    } catch (error) {
+      console.log("Error:", error);
     }
-
-    setTodo((prev) =>
-      prev.map((item) =>
-        item._id === editId ? data.data : item
-      )
-    );
-
-    setVal("");
-    setDescription("");
-    setEditId(null);
-
-  } catch (error) {
-    console.log("Error:", error);
   }
-}
 
+  // COMPLETE - Update completed status in MongoDB
+  async function handleComplete(id) {
+    const selectedTodo = todo.find((item) => item._id === id);
 
-  // COMPLETE - Currently local React state only
-  
-async function handleComplete(id) {
-  const selectedTodo = todo.find((item) => item._id === id);
+    if (!selectedTodo) return;
 
-  if (!selectedTodo) return;
+    const updatedCompleted = !selectedTodo.completed;
 
-  const updatedCompleted = !selectedTodo.completed;
-
-  try {
-    const response = await fetch(
-      `http://localhost:3031/todos/${id}`,
-      {
+    try {
+      const response = await fetch(`${API_URL}/todos/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -161,28 +152,26 @@ async function handleComplete(id) {
           description: selectedTodo.description,
           completed: updatedCompleted,
         }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.log(data.message);
+        return;
       }
-    );
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.log(data.message);
-      return;
+      setTodo((prev) =>
+        prev.map((item) =>
+          item._id === id ? data.data : item
+        )
+      );
+    } catch (error) {
+      console.log("Error:", error);
     }
-
-    setTodo((prev) =>
-      prev.map((item) =>
-        item._id === id ? data.data : item
-      )
-    );
-
-  } catch (error) {
-    console.log("Error:", error);
   }
-}
 
-  // EDIT
+  // EDIT - Load selected Todo into inputs
   function handleEdit(item) {
     setVal(item.title);
     setDescription(item.description);
