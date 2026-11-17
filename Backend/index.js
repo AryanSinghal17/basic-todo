@@ -1,4 +1,5 @@
 require("dotenv").config();
+const PORT = process.env.PORT || 3031;
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -16,7 +17,7 @@ app.use(cors());
 mongoose
   .connect(process.env.MONGO_URL)
   .then((res) => {
-    app.listen(3031, () => {
+    app.listen(PORT, () => {
       console.log("server is running");
     });
 
